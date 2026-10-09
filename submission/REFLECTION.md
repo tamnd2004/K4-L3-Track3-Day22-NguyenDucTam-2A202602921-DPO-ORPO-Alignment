@@ -7,7 +7,8 @@
 
 > Mọi con số dưới đây lấy từ file do notebook sinh ra (`adapters/dpo/dpo_metrics.json`,
 > `data/eval/judge_summary.json`, `data/eval/benchmark_results.json`…), không ước lượng bằng mắt.
-> Notebook đã chạy (giữ output): [`colab/Lab22_DPO_Kaggle.ipynb`](../colab/Lab22_DPO_Kaggle.ipynb).
+> Notebook đã chạy (giữ output): [`colab/Lab22_DPO_Kaggle.ipynb`](../colab/Lab22_DPO_Kaggle.ipynb) (NB0–NB6) và
+> [`colab/Lab22_NB7_Kaggle.ipynb`](../colab/Lab22_NB7_Kaggle.ipynb) (NB7 + `make verify`).
 
 ---
 
@@ -216,12 +217,28 @@ Không chạy NB3b (bỏ qua để tiết kiệm quota GPU Kaggle).
 
 ## 9. GRPO (bonus NB7)
 
+> Ảnh: `screenshots/08-grpo-reward.png` · notebook: [`colab/Lab22_NB7_Kaggle.ipynb`](../colab/Lab22_NB7_Kaggle.ipynb)
+
 | | Giá trị |
 |---|---:|
-| Độ chính xác trước / sau (n câu kiểm tra) | không chạy |
-| Sai số chuẩn ≈ √(p(1−p)/n) | — |
+| Độ chính xác trước / sau (n câu kiểm tra) | 0,56 / 0,54 (n=100, `vuongtsc/vi-gsm8k-agentic`, greedy, tối đa 320 token) |
+| Sai số chuẩn ≈ √(p(1−p)/n) | ≈ 0,05 (√(0,56·0,44/100) = 0,050) |
+| Huấn luyện | 60 bước × 1 câu hỏi × G = 4 câu trả lời (temperature 1,0), 400 bài huấn luyện, lr 5e-6, loss `dapo`, β = 0; 50 phút 41 giây trên T4 |
 
-Không chạy: lần chạy Kaggle dừng ở NB6 (OOM) trước khi tới NB7.
+NB7 chạy ở một phiên Kaggle riêng (lần chạy chính mất trọng số sau khi dừng ở NB6), xuất phát từ mô hình SFT được huấn luyện lại
+bằng NB1. Lần huấn luyện lại gần như trùng khớp lần đầu: loss bước 10 là 1,884151 so với 1,884132, loss cuối 1,3601 so với 1,3602.
+
+Reward trung bình (tối đa 2,5 = 2,0 nếu đúng đáp số + 0,5 nếu có dòng "Đáp số: <số>") dao động mạnh: 0,28 ở bước 5, đỉnh 1,13
+ở bước 15, 0,78 ở bước 60; trung bình nửa đầu (bước 5–30) 0,58, nửa sau (35–60) 0,68. Phần tăng đến từ **đúng đáp án**:
+reward correctness trung bình 0,32 → 0,43 (≈ 16% → 22% câu trả lời lấy mẫu đúng), còn reward **định dạng** gần như đứng yên
+(0,26 → 0,25, ≈ 50% câu có dòng "Đáp số:"). Định dạng không tăng trước như kỳ vọng vì nút thắt là độ dài: 20–65% câu lấy mẫu bị
+cắt ở 320 token (`clipped_ratio`, không có xu hướng giảm) nên mất dòng đáp số và nhận 0 cho cả hai reward. Mỗi điểm log chỉ gồm
+5 câu hỏi × 4 câu trả lời; nhóm nào cả 4 câu cùng 0 điểm thì advantage = 0 và không đóng góp gradient. Vì vậy đường reward chủ
+yếu là nhiễu.
+
+Chênh lệch độ chính xác −0,02 (2 câu trên 100) nhỏ hơn một sai số chuẩn (0,05) và xa ngưỡng ~2×, nên **không vượt nhiễu**:
+60 bước GRPO (60 câu hỏi, 0,15 epoch) chưa đổi được năng lực giải toán. Làm lại: tăng `max_completion_length` lên ≥ 512 để câu
+trả lời không bị cắt, mỗi bước dùng nhiều câu hỏi hơn, và chạy vài trăm bước.
 
 ---
 
@@ -230,24 +247,22 @@ Không chạy: lần chạy Kaggle dừng ở NB6 (OOM) trước khi tới NB7.
 - [ ] NB3b — biến thể loss (+8)
 - [x] NB5 — GGUF SFT+DPO (+4): `data/eval/deploy_meta.json`, `screenshots/06-gguf-smoke.png`; câu trả lời HF và GGUF Q4_K_M (2,50 GB) gần như trùng nhau, chỉ khác vài từ
 - [x] NB6 — benchmark (+6): một phần, có IFEval + GSM8K, Global-MMLU-vi bị OOM (§7)
-- [ ] NB7 — GRPO (+8)
+- [x] NB7 — GRPO (+8): `adapters/grpo/grpo_metrics.json`, `screenshots/08-grpo-reward.png` (§9)
 - [ ] β-sweep (+6)
 - [x] Chấm chéo bằng hai họ mô hình (+4): `cross_judge.agreement` = 0,81 (Claude Opus 5.5 so với hội đồng RM Skywork)
-- [ ] Đẩy lên HF Hub + thẻ mô tả mô hình (+3)
-- [ ] `BONUS-CHALLENGE.md` (không chấm điểm)
-
----
-
-## Ghi chú về bằng chứng và tái lập
-
-- Toàn bộ số liệu đến từ **một** lần chạy Kaggle *Save & Run All* (2026-10-08, notebook `colab/Lab22_DPO_Kaggle.ipynb`, sinh
+- [ ] Đẩy lên HF Hub + thẻ mô t- Số liệu NB0–NB6 đến từ **một** lần chạy Kaggle *Save & Run All* (2026-10-08, notebook `colab/Lab22_DPO_Kaggle.ipynb`, sinh
   từ cùng nguồn `notebooks/*.py` + `lab22/*.py` như bản Colab). NB0–NB5 chạy xong; NB6 dừng ở Global-MMLU-vi (OOM); NB7 và cell
   `verify` không được chạy tới. Lần thử trước trên Colab hết quota giữa chừng và không được dùng.
+- NB7 và `make verify` chạy ở phiên Kaggle thứ hai (`colab/Lab22_NB7_Kaggle.ipynb`, 2026-10-09): notebook lấy lại bằng chứng đã
+  commit từ GitHub, huấn luyện lại NB1 ở cùng đường dẫn `/tmp/lab22/models/sft-merged` (loss trùng lần đầu tới 4 chữ số thập
+  phân), chạy NB7, rồi chạy `scripts/verify.py`: **"✓ Core checks passed"** (thoát mã 0). Chỉ `grpo_metrics.json` và
+  `08-grpo-reward.png` được lấy từ phiên này; mọi bằng chứng NB0–NB6 vẫn là của lần chạy đầu.
 - `screenshots/06-gguf-smoke.png` là ảnh dựng lại từ output của cell llama-cpp trong notebook trên (lần chạy commit của Kaggle
   không chụp màn hình trực tiếp được). `07-benchmark-comparison.png` và `benchmark_results.json` được tạo từ các dòng NB6 đã in (§7).
 - `make verify` tại máy local: mọi kiểm tra về bằng chứng đều qua (split không trùng câu hỏi, hash `side_by_side.jsonl` khớp
-  `judge_summary.json`, ≥ 50 câu held-out, đủ 4 ảnh bắt buộc). Hai mục còn báo lỗi là do môi trường: `models/sft-merged`
+  `judge_summary.json`, ≥ 50 câu held-out, đủ 4 ảnh bắt buộc). Hai mục còn báo lỗi chỉ do môi trường: `models/sft-merged`
   (8 GB, bị `.gitignore` chặn) chỉ tồn tại trong phiên Kaggle, và adapter trỏ tới đường dẫn tham chiếu của phiên đó
+  (`/tmp/lab22/models/sft-merged`). Trong phiên Kaggle có mô hình đó, `verify` qua toàn bộ (mục trên).phiên Kaggle, và adapter trỏ tới đường dẫn tham chiếu của phiên đó
   (`/tmp/lab22/models/sft-merged`).
 
 ---
