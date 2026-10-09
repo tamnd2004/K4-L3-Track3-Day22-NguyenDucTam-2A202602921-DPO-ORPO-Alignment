@@ -1,0 +1,37 @@
+{
+  "compute_tier": "T4",
+  "dtype": "float16",
+  "chat_template": true,
+  "results": [
+    {
+      "benchmark": "IFEval",
+      "task": "ifeval",
+      "limit_per_subtask": 200,
+      "sft": 0.525,
+      "sft_stderr": 0.03539972744976418,
+      "dpo": 0.515,
+      "dpo_stderr": 0.035428106832977174,
+      "delta": -0.010000000000000009
+    },
+    {
+      "benchmark": "GSM8K",
+      "task": "gsm8k",
+      "limit_per_subtask": 250,
+      "sft": 0.824,
+      "sft_stderr": 0.024133497525457123,
+      "dpo": 0.824,
+      "dpo_stderr": 0.024133497525457123,
+      "delta": 0.0
+    }
+  ],
+  "not_run": [
+    {
+      "benchmark": "Global-MMLU-vi",
+      "task": "global_mmlu_full_vi",
+      "limit_per_subtask": 10,
+      "status": "failed on the SFT run: CUDA out of memory (the notebook kernel still held ~3.5 GB of GPU memory after NB4)",
+      "error": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 262.00 MiB. GPU 0 has a total capacity of 14.56 GiB of which 260.81 MiB is free. Process 24 has 3.56 GiB memory in use. Including non-PyTorch memory, this process has 10.74 GiB memory in use. Of the allocated memory 10.50 GiB is allocated by PyTorch, and 109.18 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)"
+    }
+  ],
+  "source": "Rows parsed from the printed output of the NB6 cell in colab/Lab22_DPO_Kaggle.ipynb (Kaggle T4 run, 2026-10-08). That cell raised before NB6's save/plot cells ran, so this file and the chart were written afterwards from the same printed rows with NB6's own plotting code."
+}

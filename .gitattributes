@@ -1,0 +1,2 @@
+# judge_summary.json stores a SHA-256 of side_by_side.jsonl: keep its bytes exact on every OS
+data/eval/*.jsonl -text
